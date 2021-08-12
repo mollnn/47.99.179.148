@@ -1,0 +1,238 @@
+#pragma GCC optimize(2)
+#pragma GCC optimize(3, "Ofast", "inline")
+#pragma GCC optimize("Ofast")
+#pragma GCC optimize("inline")
+#pragma GCC optimize("-fgcse")
+#pragma GCC optimize("-fgcse-lm")
+#pragma GCC optimize("-fipa-sra")
+#pragma GCC optimize("-ftree-pre")
+#pragma GCC optimize("-ftree-vrp")
+#pragma GCC optimize("-fpeephole2")
+#pragma GCC optimize("-ffast-math")
+#pragma GCC optimize("-fsched-spec")
+#pragma GCC optimize("unroll-loops")
+#pragma GCC optimize("-falign-jumps")
+#pragma GCC optimize("-falign-loops")
+#pragma GCC optimize("-falign-labels")
+#pragma GCC optimize("-fdevirtualize")
+#pragma GCC optimize("-fcaller-saves")
+#pragma GCC optimize("-fcrossjumping")
+#pragma GCC optimize("-fthread-jumps")
+#pragma GCC optimize("-funroll-loops")
+#pragma GCC optimize("-freorder-blocks")
+#pragma GCC optimize("-fschedule-insns")
+#pragma GCC optimize("inline-functions")
+#pragma GCC optimize("-ftree-tail-merge")
+#pragma GCC optimize("-fschedule-insns2")
+#pragma GCC optimize("-fstrict-aliasing")
+#pragma GCC optimize("-fstrict-overflow")
+#pragma GCC optimize("-falign-functions")
+#pragma GCC optimize("-fcse-follow-jumps")
+#pragma GCC optimize("-fsched-interblock")
+#pragma GCC optimize("-fpartial-inlining")
+#pragma GCC optimize("no-stack-protector")
+#pragma GCC optimize("-freorder-functions")
+#pragma GCC optimize("-findirect-inlining")
+#pragma GCC optimize("-fhoist-adjacent-loads")
+#pragma GCC optimize("-frerun-cse-after-loop")
+#pragma GCC optimize("inline-small-functions")
+#pragma GCC optimize("-finline-small-functions")
+#pragma GCC optimize("-ftree-switch-conversion")
+#pragma GCC optimize("-foptimize-sibling-calls")
+#pragma GCC optimize("-fexpensive-optimizations")
+#pragma GCC optimize("inline-functions-called-once")
+#pragma GCC optimize("-fdelete-null-pointer-checks")
+
+#include <bits/stdc++.h>
+using namespace std;
+
+#define int long long
+
+const int N = 405;
+const double K = 1e9;
+const double V = 0;
+
+vector<pair<pair<int, int>, int>> g[N];
+int n, m, q;
+int qu[N * 20], qv[N * 20];
+int ecnt[N * 20], evid[N * 20];
+int d[N], f[N], fe[N], v[N];
+int deg[N];
+
+struct Road
+{
+    int u, v;
+    double w, a;
+};
+vector<Road> roads;
+
+vector<int> getpath(int qx)
+{
+    int qs = qu[qx], qt = qv[qx];
+    memset(d, 0x3f, sizeof d);
+    memset(v, 0, sizeof v);
+    memset(f, 0, sizeof f);
+    memset(fe, 0, sizeof fe);
+    deque<int> que;
+    d[qs] = 0;
+    v[qs] = 1;
+    que.push_back(qs);
+
+    while (!que.empty())
+    {
+        int p = que.front();
+        que.pop_front();
+        v[p] = 0;
+        int siz = g[p].size();
+        for (int i = 0; i < siz; i++)
+        {
+            int q = g[p][i].first.first, x = g[p][i].first.second, w = g[p][i].second;
+            if (d[q] > d[p] + w)
+            {
+                d[q] = d[p] + w;
+                f[q] = p;
+                fe[q] = x;
+                if (!v[q])
+                {
+                    v[q] = 1;
+                    que.push_back(q);
+                }
+            }
+        }
+    }
+
+    vector<int> path;
+    double tans = d[qt];
+    int p = qt;
+    while (p)
+    {
+        path.push_back(p);
+        if (f[p])
+            path.push_back(fe[p]);
+        p = f[p];
+    }
+    reverse(path.begin(), path.end());
+    return path;
+}
+
+double addPath(const vector<int> &path, double weight = 1)
+{
+    double tans = 0;
+    for (int i = 0; i + 2 < path.size(); i += 2)
+    {
+        int u = path[i], v = path[i + 2];
+        int x = path[i + 1];
+        int y = evid[x];
+        tans += g[u][y].second;
+        ecnt[x]++;
+        g[u][y].second += 2 * weight * K * roads[x].a * roads[x].w;
+    }
+    return tans;
+}
+
+double delPath(const vector<int> &path, double weight = 1)
+{
+    double tans = 0;
+    for (int i = 0; i + 2 < path.size(); i += 2)
+    {
+        int u = path[i], v = path[i + 2];
+        int x = path[i + 1];
+        int y = evid[x];
+        ecnt[x]--;
+        g[u][y].second -= 2 * weight * K * roads[x].a * roads[x].w;
+        tans -= g[u][y].second;
+    }
+    return tans;
+}
+
+void solve()
+{
+    roads.clear();
+    cin >> n >> m >> q;
+    vector<vector<int>> ans(q + 2);
+    vector<double> ansval(q + 2);
+    memset(ecnt, 0, sizeof ecnt);
+    memset(deg, 0, sizeof deg);
+    memset(evid, 0, sizeof evid);
+
+    int error_cnt = 0;
+
+    for (int i = 1; i <= n; i++)
+        g[i].clear();
+    for (int i = 0; i < q; i++)
+        cin >> qu[i] >> qv[i], qu[i]++, qv[i]++;
+    for (int i = 1; i <= m; i++)
+    {
+        int u, v;
+        double w, a, b;
+        cin >> u >> v >> w >> a >> b;
+        ++u;
+        ++v;
+        roads.push_back({u, v, w, a});
+        roads.push_back({v, u, w, b});
+        g[u].push_back({{v, 2 * i - 2}, w * K});
+        evid[2 * i - 2] = g[u].size() - 1;
+        g[v].push_back({{u, 2 * i - 1}, w * K});
+        evid[2 * i - 1] = g[v].size() - 1;
+        deg[u]++;
+        deg[v]++;
+    }
+
+    int maxdeg = *max_element(deg + 1, deg + n + 1);
+
+    vector<int> qid;
+    for (int i = 0; i < q; i++)
+        qid.push_back(i);
+    double cost = 0;
+
+    for (int i = 1; i <= 9 * ((n + m) * 7 + q); i++)
+    {
+        int qx = rand() * rand() % qid.size();
+        vector<int> path = ans[qx];
+        if (path.size())
+        {
+            double oans = delPath(path);
+            cost -= oans;
+        }
+        path = getpath(qx);
+        double tans = addPath(path);
+        ans[qx] = path;
+        ansval[qx] = tans;
+        cost += tans;
+    }
+
+    for (int i = 0; i < q; i++)
+    {
+        int qx = i;
+        vector<int> path = ans[qx];
+        if (path.size() == 0)
+        {
+            path = getpath(qx);
+            double tans = addPath(path);
+            ans[qx] = path;
+            ansval[qx] = tans;
+            cost += tans;
+        }
+    }
+
+    for (int i = 0; i < q; i++)
+    {
+        cout << ans[i].size() << endl;
+        for (int j = 0; j < ans[i].size(); j++)
+        {
+            cout << ans[i][j] - (j % 2 == 0) << " ";
+        }
+        cout << endl;
+    }
+    // cout << "cost = " << cost / 1e9 << endl;
+}
+
+signed main()
+{
+    srand(1);
+    ios::sync_with_stdio(false);
+    int t;
+    cin >> t;
+    while (t--)
+        solve();
+}

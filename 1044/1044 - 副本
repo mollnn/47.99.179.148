@@ -1,0 +1,182 @@
+
+
+#include <iostream>
+#include <cstdio>
+#include <cstring>
+#include <string>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <queue>
+
+using namespace std;
+
+#define PII pair<int64_t, int64_t>
+#define PDD pair<double, double> >
+
+// 快读
+inline int64_t IntRead();
+inline double DoubleRead();
+
+int64_t nVertex, nEdge, nQuery;
+int64_t edgeName[405][405];       // 连接 i,j 的边的标号
+double dist[405][405];            // 最短路计算用的邻接矩阵
+int64_t from[405][405];           // 最短路计算用的邻接矩阵
+vector<PII> userQuery;            // 用户询问的要求
+vector < pair<PII, PDD> edgeData; // 边的原始信息
+
+// 获取从 l 到 r 的最短路路径
+void GetShortestPathVector(int64_t l, int64_t r, vector<int64_t> &ans);
+
+// Floyd 计算最短路
+void ShortestPath();
+
+// 决策路线
+void DecidePath(int64_t vertex1, int64_t vertex2);
+
+int main(int argc, char *argv[])
+{
+    int64_t t;
+    t = IntRead();
+    while (t--)
+    {
+        nVertex = IntRead();
+        nEdge = IntRead();
+        nQuery = IntRead();
+        for (int64_t i = 0; i < nQuery; i++)
+        {
+            int64_t data1 = IntRead(), data2 = IntRead();
+            ++data1;
+            ++data2;
+            userQuery.push_back({data1, data2});
+        }
+
+        for (int64_t i = 0; i < nEdge; i++)
+        {
+            int64_t data1 = IntRead(), data2 = IntRead();
+
+            double weight = DoubleRead(), value1 = DoubleRead(), value2 = DoubleRead();
+            ++data1;
+            ++data2;
+            edgeData.push_back({{data1, data2}, {weight, value1}});
+            edgeData.push_back({{data2, data1}, {weight, value2}});
+            edgeName[data1][data2] = 2 * i;
+            edgeName[data2][data1] = 2 * i + 1;
+        }
+
+        // 初始化邻接矩阵
+        for (int64_t i = 1; i <= nVertex; i++)
+            for (int64_t j = 1; j <= nVertex; j++)
+                dist[i][j] = 1e18, from[i][j] = 0;
+        for (int64_t i = 0; i < edgeData.size(); i++)
+        {
+            int64_t vertex1, vertex2;
+            double weight, value1;
+            vertex1 = edgeData[i].first.first;
+            vertex2 = edgeData[i].first.second;
+            weight = edgeData[i].second.first;
+            value1 = edgeData[i].second.second;
+            dist[vertex1][vertex2] = weight;
+        }
+
+        ShortestPath();
+
+        // 回答询问
+        for (int64_t i = 0; i < nQuery; i++)
+        {
+            int64_t vertex1, vertex2;
+            vertex1 = userQuery[i].first;
+            vertex2 = userQuery[i].second;
+            DecidePath(vertex1, vertex2);
+        }
+
+        nVertex = nEdge = nQuery = 0;
+        userQuery.clear();
+        edgeData.clear();
+    }
+}
+
+// 快速读入器
+
+inline int64_t IntRead()
+{
+    char ch = getchar();
+    int64_t s = 0, w = 1;
+    while (ch < '0' || ch > '9')
+    {
+        if (ch == '-')
+            w = -1;
+        ch = getchar();
+    }
+    while (ch >= '0' && ch <= '9')
+    {
+        s = s * 10 + ch - '0',
+        ch = getchar();
+    }
+    return s * w;
+}
+
+inline double DoubleRead()
+{
+    int64_t s = 0, w = 1, k = 0, n = 0, m = 0;
+    char ch = getchar();
+    while (ch < '0' || ch > '9')
+    {
+        if (ch == '-')
+            w = -1;
+        ch = getchar();
+    }
+    while ((ch >= '0' && ch <= '9') || ch == '.')
+    {
+        // n = 0代表读入整数，= 1代表读入小数
+        if (ch == '.')
+            n = 1;
+        else if (n == 0)
+            s = s * 10 + ch - '0';
+        else
+            k = k * 10 + ch - '0', m++;
+        ch = getchar();
+    }
+    return (pow(0.1, m) * k + s) * w;
+}
+
+// 获取从 l 到 r 的最短路路径
+void GetShortestPathVector(int64_t l, int64_t r, vector<int64_t> &ans)
+{
+    int64_t nEdge = from[l][r];
+    if (nEdge == 0)
+        ans.push_back(r);
+    else
+    {
+        GetShortestPathVector(l, nEdge, ans);
+        GetShortestPathVector(nEdge, r, ans);
+    }
+}
+
+// Floyd 计算最短路
+void ShortestPath()
+{
+    for (int64_t k = 1; k <= nVertex; k++)
+        for (int64_t i = 1; i <= nVertex; i++)
+            for (int64_t j = 1; j <= nVertex; j++)
+                if (dist[i][j] > dist[i][k] + dist[k][j])
+                    dist[i][j] = dist[i][k] + dist[k][j],
+                    from[i][j] = k;
+}
+
+// 决策路线
+void DecidePath(int64_t vertex1, int64_t vertex2)
+{
+    vector<int64_t> pathVertexList;
+    pathVertexList.push_back(vertex1);
+    // 贪心找最短路
+    GetShortestPathVector(vertex1, vertex2, pathVertexList);
+    cout << 2ll * pathVertexList.size() - 1 << endl;
+    for (int64_t j = 0; j < pathVertexList.size(); j++)
+    {
+        cout << pathVertexList[j] - 1 << " ";
+        if (j + 1 < pathVertexList.size())
+            cout << edgeName[pathVertexList[j]][pathVertexList[j + 1]] << " ";
+    }
+    cout << endl;
+}
